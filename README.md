@@ -1,16 +1,58 @@
-# Tauri + Vue + TypeScript
+# AdGuard VPN GUI
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+A desktop GUI for [adguardvpn-cli](https://adguard-vpn.com/en/blog/adguard-vpn-linux.html) built with Tauri 2 + Vue 3 + TypeScript.
 
-## Recommended IDE Setup
+## Features
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+- **Connect / Disconnect** with one click
+- **Location picker** — full list with country flags, ping times, and search
+- **Fastest location** auto-select
+- **Site exclusions** — general and selective mode
+- **Account info** — plan, devices, expiry date
+- **Settings** — VPN mode (TUN/SOCKS), protocol, post-quantum encryption, crash reporting, analytics
+- **GUI password prompt** — no terminal needed; prompts for your sudo password when required and caches credentials for ~15 minutes
 
-## Type Support For `.vue` Imports in TS
+## Requirements
 
-Since TypeScript cannot handle type information for `.vue` imports, they are shimmed to be a generic Vue component type by default. In most cases this is fine if you don't really care about component prop types outside of templates. However, if you wish to get actual prop types in `.vue` imports (for example to get props validation when using manual `h(...)` calls), you can enable Volar's Take Over mode by following these steps:
+- [`adguardvpn-cli`](https://adguard-vpn.com/en/blog/adguard-vpn-linux.html) installed and logged in
+- Rust + Cargo
+- Node.js
 
-1. Run `Extensions: Show Built-in Extensions` from VS Code's command palette, look for `TypeScript and JavaScript Language Features`, then right click and select `Disable (Workspace)`. By default, Take Over mode will enable itself if the default TypeScript extension is disabled.
-2. Reload the VS Code window by running `Developer: Reload Window` from the command palette.
+## Setup
 
-You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/volar/discussions/471).
+**Log in to AdGuard VPN** (one-time, in a terminal):
+```sh
+adguardvpn-cli login
+```
+
+**Install dependencies:**
+```sh
+npm install
+```
+
+## Development
+
+```sh
+npm run tauri dev
+```
+
+## Build
+
+```sh
+npm run tauri build
+```
+
+## How privilege escalation works
+
+`adguardvpn-cli` uses `sudo` internally to configure network interfaces (TUN setup, routing scripts, etc.). It has no polkit integration, so running it from a GUI without a terminal would normally leave sudo with no way to prompt for a password.
+
+This app works around that by showing its own password dialog and running:
+
+```
+sudo -S -E adguardvpn-cli <command>
+```
+
+- `-S` reads the password from stdin (no TTY needed)
+- `-E` preserves your environment so the CLI finds its credentials in your home directory
+
+Once authenticated, sudo caches your credentials for ~15 minutes (the system default), so you won't be prompted again for subsequent operations within that window.
