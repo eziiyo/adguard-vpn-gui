@@ -85,7 +85,6 @@ const sudoModalLoading = ref(false)
 
 // Non-reactive: callbacks for the in-flight privileged operation.
 let _sudoResolve: ((pwd: string | null) => void) | null = null
-let _currentSudoFn: ((pwd?: string) => Promise<unknown>) | null = null
 
 /**
  * Wraps a privileged Tauri command:
@@ -109,7 +108,6 @@ async function runWithSudo<T>(fn: (pwd?: string) => Promise<T>): Promise<T> {
     sudoModalLoading.value = false
     showSudoModal.value = true
 
-    _currentSudoFn = fn as (pwd?: string) => Promise<unknown>
     _sudoResolve = (pwd: string | null) => {
       if (pwd === null) {
         reject(new Error('Cancelled'))
@@ -120,7 +118,6 @@ async function runWithSudo<T>(fn: (pwd?: string) => Promise<T>): Promise<T> {
       ;(fn(pwd) as Promise<T>)
         .then(result => {
           showSudoModal.value = false
-          _currentSudoFn = null
           _sudoResolve = null
           resolve(result)
         })
@@ -128,12 +125,10 @@ async function runWithSudo<T>(fn: (pwd?: string) => Promise<T>): Promise<T> {
           sudoModalLoading.value = false
           const msg = String(err)
           if (msg.includes('SUDO_AUTH_FAILED')) {
-            // Keep modal open — let user try again.
             sudoModalError.value = 'Incorrect password. Try again.'
             sudoInputPassword.value = ''
           } else {
             showSudoModal.value = false
-            _currentSudoFn = null
             _sudoResolve = null
             reject(err)
           }
@@ -150,7 +145,6 @@ function onSudoCancel() {
   showSudoModal.value = false
   if (_sudoResolve) _sudoResolve(null)
   _sudoResolve = null
-  _currentSudoFn = null
 }
 
 // ── Computed ──────────────────────────────────────────────────────────────────
@@ -180,7 +174,7 @@ function countryFlag(iso: string): string {
   return iso
     .toUpperCase()
     .split('')
-    .map(c => String.fromCodePoint(0x1f1e0 + c.charCodeAt(0) - 65))
+    .map(c => String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65))
     .join('')
 }
 
@@ -320,18 +314,6 @@ async function saveConfigMode() {
   }
 }
 
-async function saveConfigDns() {
-  configError.value = ''
-  try {
-    await runWithSudo(pwd =>
-      invoke('config_set_dns', { dns: configDns.value, sudoPassword: pwd ?? null }),
-    )
-    await loadConfig()
-  } catch (e) {
-    const msg = String(e)
-    if (!msg.includes('Cancelled')) configError.value = msg
-  }
-}
 
 async function saveConfigProtocol() {
   configError.value = ''
@@ -609,8 +591,8 @@ onUnmounted(() => {
           >
             <span class="loc-flag">{{ countryFlag(loc.iso) }}</span>
             <div class="loc-text">
-              <span class="loc-city">{{ loc.city }}</span>
-              <span class="loc-country">{{ loc.country }}</span>
+              <span class="loc-city">{{ loc.country }}</span>
+              <span class="loc-country">{{ loc.city }}</span>
             </div>
             <span v-if="loc.ping !== null" class="loc-ping" :class="pingClass(loc.ping)">{{ loc.ping }}ms</span>
           </div>
@@ -951,7 +933,7 @@ body { background: var(--bg); overflow: hidden; }
 .setting-info { display: flex; flex-direction: column; gap: 2px; flex: 1; }
 .setting-name { font-size: 13px; font-weight: 500; }
 .setting-desc { font-size: 11px; color: var(--muted); }
-.setting-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; color: var(--text); font-size: 12px; outline: none; cursor: pointer; }
+.setting-select { appearance: none; -webkit-appearance: none; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; color: var(--text); font-size: 12px; outline: none; cursor: pointer; }
 .toggle-btn { width: 40px; height: 22px; border-radius: 11px; background: var(--surface2); border: 1px solid var(--border); cursor: pointer; position: relative; flex-shrink: 0; transition: background 0.2s, border-color 0.2s; }
 .toggle-btn.toggle-on { background: var(--green-dim); border-color: var(--green); }
 .toggle-knob { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--muted); transition: transform 0.2s, background 0.2s; }
