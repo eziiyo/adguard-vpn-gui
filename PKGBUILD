@@ -4,7 +4,7 @@ pkgver=0.1.0
 pkgrel=1
 pkgdesc="Graphical frontend for AdGuard VPN CLI"
 arch=('x86_64')
-url="https://github.com/YOUR_USERNAME/adguard-vpn-gui"
+url="https://github.com/eziiyo/adguard-vpn-gui"
 license=('MIT')
 
 depends=(
